@@ -1,0 +1,13 @@
+{
+  "name": "ivolopes-art",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "og": "node tools/build-og.mjs"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.64.0"
+  }
+}
