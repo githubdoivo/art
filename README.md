@@ -24,4 +24,4 @@ bisque-fired and glazed, with each step of the page's text alongside it.
 `npm test` runs the Playwright tests (both languages, scroll-to-stage, the
 kiln glow, the phone layout never covering the clay, the no-WebGL fallback,
 accessibility). CI runs them, plus a Lighthouse audit, on every push and daily.
-`npm run og` re-renders the link preview image.
+`npm run og` re-renders the link preview image: run it after any change to the clay or its style, and bump the `?v=` on `og:image` in `index.html` so chat apps fetch the new one instead of a cached copy.
