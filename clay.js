@@ -9,8 +9,6 @@
 // same number of points, so moving between stages is a plain interpolation.
 import * as THREE from "three";
 
-const M = 44; // points on the outer wall, and again on the inner wall
-const SEGMENTS = 120; // around the axis
 
 /* ---------- Profiles ------------------------------------------------------- */
 // Each stage: an outer polyline from the bottom centre up to the rim, and an
@@ -70,7 +68,12 @@ function resample(points, n) {
   }
   return out;
 }
-const SAMPLED = PROFILES.map((p) => [...resample(p.outer, M), ...resample(p.inner, M)]);
+// Resampled profiles per resolution (m points per wall), built on first use.
+const sampledCache = new Map();
+function sampled(m) {
+  if (!sampledCache.has(m)) sampledCache.set(m, PROFILES.map((p) => [...resample(p.outer, m), ...resample(p.inner, m)]));
+  return sampledCache.get(m);
+}
 
 /* ---------- Stage parameters ---------------------------------------------- */
 // How worked the surface looks, the throwing rings, and the material.
@@ -139,21 +142,70 @@ function shadowTexture() {
   return new THREE.CanvasTexture(c);
 }
 
+/* ---------- Styles --------------------------------------------------------- */
+// Same shapes and stages in every style; what changes is resolution, material,
+// palette (one colour per stage) and lighting, plus an outline or ink lines.
+export const STYLES = {
+  realistic: { m: 44, segments: 120, material: "physical", toneMap: true, noise: 1 },
+  toon: {
+    m: 32, segments: 80, material: "toon", noise: 0.55, outline: 0.028, ink: "#2a1d16",
+    palette: ["#b8744b", "#b8744b", "#a9653f", "#ad6a44", "#b06e48", "#cf9b70", "#f2c7aa", "#3f9089"],
+    glaze: { rim: "#a6dccf", pool: "#2b6f6b", foot: "#f2c7aa" },
+  },
+  ink: {
+    m: 32, segments: 80, material: "flat", noise: 0.45, outline: 0.02, ink: "#2a211b", contours: true,
+    palette: ["#eadccb", "#eadccb", "#e7d7c4", "#e7d7c4", "#e7d7c4", "#ecdccb", "#f6d9c6", "#cfe5df"],
+    glaze: { rim: "#e7f3ef", pool: "#a9cfc6", foot: "#f6d9c6" },
+  },
+  lowpoly: {
+    m: 9, segments: 12, material: "faceted", noise: 1.1,
+    palette: ["#b97650", "#b97650", "#a9673f", "#ab6a44", "#ae6d47", "#c9976d", "#efc3a6", "#2f8088"],
+    glaze: { rim: "#6fb9b5", pool: "#21646b", foot: "#efc3a6" },
+  },
+  pastel: {
+    m: 36, segments: 96, material: "matte", noise: 0.5,
+    palette: ["#d6a184", "#d6a184", "#cf9a7c", "#d09c7e", "#d2a083", "#e6c1a6", "#f5ddcc", "#a7cfc0"],
+    glaze: { rim: "#dcefe8", pool: "#86b7a6", foot: "#f5ddcc" },
+  },
+};
+const KILN = new THREE.Color("#ff8a3c");
+
+function toonGradient() {
+  const t = new THREE.DataTexture(new Uint8Array([70, 70, 70, 255, 160, 160, 160, 255, 255, 255, 255, 255]), 3, 1);
+  t.minFilter = t.magFilter = THREE.NearestFilter;
+  t.needsUpdate = true;
+  return t;
+}
+
+/** An "inverted hull" outline: the back faces, pushed out along the normals. */
+function outlineMesh(geometry, color, thickness) {
+  const mat = new THREE.MeshBasicMaterial({ color, side: THREE.BackSide });
+  mat.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader.replace("#include <begin_vertex>", `vec3 transformed = position + normal * ${thickness.toFixed(4)};`);
+  };
+  return new THREE.Mesh(geometry, mat);
+}
+
 /* ---------- Scene ---------------------------------------------------------- */
-export function createClay(canvas, { reducedMotion = false } = {}) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+export function createClay(canvas, { reducedMotion = false, style: styleName = "realistic" } = {}) {
+  const style = STYLES[styleName] ?? STYLES.realistic;
+  const M = style.m, SEGMENTS = style.segments, SAMPLED = sampled(M);
+  canvas.dataset.style = STYLES[styleName] ? styleName : "realistic";
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMapping = style.toneMap ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
   renderer.toneMappingExposure = 1.05;
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 50);
 
-  scene.add(new THREE.HemisphereLight(0xfff3e6, 0x3b2a20, 0.9));
-  const key = new THREE.DirectionalLight(0xfff1e0, 2.4);
+  const soft = style.material === "matte";
+  scene.add(new THREE.HemisphereLight(0xfff3e6, 0x3b2a20, soft ? 1.5 : style.toneMap ? 0.9 : 0.8));
+  const key = new THREE.DirectionalLight(0xfff1e0, soft ? 1.3 : style.toneMap ? 2.4 : 2.0);
   key.position.set(3, 5, 4);
   scene.add(key);
-  const rim = new THREE.DirectionalLight(0xc9dcff, 1.2);
+  const rim = new THREE.DirectionalLight(0xc9dcff, style.toneMap ? 1.2 : 0.5);
   rim.position.set(-4, 3, -3);
   scene.add(rim);
   const kiln = new THREE.PointLight(0xff7a2a, 0, 8);
@@ -180,30 +232,55 @@ export function createClay(canvas, { reducedMotion = false } = {}) {
   geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
   geometry.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
 
-  const material = new THREE.MeshPhysicalMaterial({
-    vertexColors: true,
-    side: THREE.DoubleSide,
-    bumpMap: grainTexture(),
-    clearcoatRoughness: 0.35,
-  });
-  const piece = new THREE.Mesh(geometry, material);
+  const material = {
+    physical: () => new THREE.MeshPhysicalMaterial({ vertexColors: true, side: THREE.DoubleSide, bumpMap: grainTexture(), clearcoatRoughness: 0.35 }),
+    toon: () => new THREE.MeshToonMaterial({ vertexColors: true, side: THREE.DoubleSide, gradientMap: toonGradient() }),
+    flat: () => new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }),
+    faceted: () => new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.DoubleSide, flatShading: true, roughness: 0.85 }),
+    matte: () => new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.DoubleSide, roughness: 1, metalness: 0 }),
+  }[style.material]();
+  const piece = new THREE.Group();
+  piece.add(new THREE.Mesh(geometry, material));
+  if (style.outline) piece.add(outlineMesh(geometry, style.ink, style.outline));
   scene.add(piece);
 
-  const wheel = new THREE.Mesh(
-    new THREE.CylinderGeometry(1.55, 1.55, 0.08, 96),
-    new THREE.MeshStandardMaterial({ color: 0x8d9196, metalness: 0.7, roughness: 0.35, transparent: true }),
-  );
+  // Ink contours: rings around the outer wall and a few lines down it, the
+  // way a potter sketches a form.
+  let contours = null, ringRows = [], meridians = [];
+  if (style.contours) {
+    for (let i = 2; i < M - 1; i += 3) ringRows.push(i);
+    for (let k = 0; k < 12; k++) meridians.push(Math.round((k / 12) * SEGMENTS));
+    const count = ringRows.length * SEGMENTS + meridians.length * (M - 1);
+    const lineGeo = new THREE.BufferGeometry();
+    lineGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(count * 6), 3));
+    contours = new THREE.LineSegments(lineGeo, new THREE.LineBasicMaterial({ color: style.ink, transparent: true, opacity: 0.5 }));
+    piece.add(contours);
+  }
+
+  const wheelMat = {
+    physical: () => new THREE.MeshStandardMaterial({ color: 0x8d9196, metalness: 0.7, roughness: 0.35, transparent: true }),
+    toon: () => new THREE.MeshToonMaterial({ color: 0x9aa0a6, gradientMap: toonGradient(), transparent: true }),
+    flat: () => new THREE.MeshBasicMaterial({ color: 0xe9e0d4, transparent: true }),
+    faceted: () => new THREE.MeshStandardMaterial({ color: 0x8f949a, flatShading: true, roughness: 0.7, transparent: true }),
+    matte: () => new THREE.MeshStandardMaterial({ color: 0xd8d2cb, roughness: 1, transparent: true }),
+  }[style.material]();
+  const wheelGeo = new THREE.CylinderGeometry(1.55, 1.55, 0.08, style.material === "faceted" ? 12 : 96);
+  const wheel = new THREE.Group();
+  wheel.add(new THREE.Mesh(wheelGeo, wheelMat));
+  if (style.outline) wheel.add(outlineMesh(wheelGeo, style.ink, style.outline * 0.8));
   wheel.position.y = -0.045;
   scene.add(wheel);
 
   const shadow = new THREE.Mesh(
     new THREE.PlaneGeometry(3.4, 3.4),
-    new THREE.MeshBasicMaterial({ map: shadowTexture(), transparent: true, depthWrite: false }),
+    new THREE.MeshBasicMaterial({ map: shadowTexture(), transparent: true, depthWrite: false, opacity: style.material === "flat" ? 0.35 : 1 }),
   );
   shadow.rotation.x = -Math.PI / 2;
   shadow.position.y = -0.09;
   scene.add(shadow);
 
+  const palette = style.palette?.map((c) => new THREE.Color(c));
+  const gz = style.glaze ? { rim: new THREE.Color(style.glaze.rim), pool: new THREE.Color(style.glaze.pool), foot: new THREE.Color(style.glaze.foot) } : { rim: GLAZE_RIM, pool: GLAZE_POOL, foot: BISQUE };
   const profile = SAMPLED[0].map((p) => [...p]);
   const base = new THREE.Color(), tmp = new THREE.Color();
   let stage = 0, shown = -1, spin = 0, last = performance.now(), running = true;
@@ -215,10 +292,14 @@ export function createClay(canvas, { reducedMotion = false } = {}) {
       profile[i][0] = lerp(A[i][0], B[i][0], t);
       profile[i][1] = lerp(A[i][1], B[i][1], t);
     }
-    const rough = lerp(P.rough, Q.rough, t), rings = lerp(P.rings, Q.rings, t), asym = lerp(P.asym, Q.asym, t);
+    const n0 = style.noise;
+    const rough = lerp(P.rough, Q.rough, t) * n0, rings = lerp(P.rings, Q.rings, t) * (style.contours ? 0.3 : 1), asym = lerp(P.asym, Q.asym, t);
     const height = Math.max(...profile.map((p) => p[1]));
     const glaze = clamp01(s - 6); // 0 before the glaze firing, 1 once glazed
-    base.set(P.color).lerp(tmp.set(Q.color), t);
+    // The kiln: a warm glow that peaks halfway through the bisque firing.
+    const glow = Math.max(0, 1 - Math.abs(s - 5.55) / 0.55);
+    if (palette) base.copy(palette[k]).lerp(palette[k + 1], t);
+    else base.set(P.color).lerp(tmp.set(Q.color), t);
 
     for (let i = 0; i < rows; i++) {
       const [r0, y] = profile[i];
@@ -230,7 +311,7 @@ export function createClay(canvas, { reducedMotion = false } = {}) {
         let r = r0;
         if (r0 > 0.002) {
           r += rough * fbm(ca * 1.6 + 3, y * 2.2, sa * 1.6 + 7);
-          r += asym * 0.06 * fbm(ca * 0.8 + 11, y * 1.1 + 2, sa * 0.8 - 5);
+          r += asym * 0.06 * n0 * fbm(ca * 0.8 + 11, y * 1.1 + 2, sa * 0.8 - 5);
           r += asym * 0.07 * r0 * Math.cos(a - 0.8) + asym * 0.04 * r0 * Math.cos(2 * a + 1.3);
           r += rings * Math.sin(y * 38) * (inside ? 0.6 : 1);
         }
@@ -244,14 +325,15 @@ export function createClay(canvas, { reducedMotion = false } = {}) {
         tmp.copy(base);
         if (glaze > 0) {
           const foot = !inside && y < height * 0.045;
-          if (foot) tmp.copy(BISQUE);
+          if (foot) tmp.copy(gz.foot);
           else {
             const rimBreak = clamp01(1 - Math.abs(along - 0.5) * 14);
-            tmp.lerp(GLAZE_POOL, (inside ? 0.35 : 0) + clamp01(0.25 - y / height) * 0.8);
-            tmp.lerp(GLAZE_RIM, rimBreak * 0.7);
-            tmp.lerp(BISQUE, 1 - glaze);
+            tmp.lerp(gz.pool, (inside ? 0.35 : 0) + clamp01(0.25 - y / height) * 0.8);
+            tmp.lerp(gz.rim, rimBreak * 0.7);
+            tmp.lerp(gz.foot, 1 - glaze);
           }
         }
+        if (style.material !== "physical" && glow > 0) tmp.lerp(KILN, glow * 0.3);
         colors[v] = tmp.r; colors[v + 1] = tmp.g; colors[v + 2] = tmp.b;
       }
     }
@@ -259,26 +341,38 @@ export function createClay(canvas, { reducedMotion = false } = {}) {
     geometry.attributes.color.needsUpdate = true;
     geometry.computeVertexNormals();
     // Weld the seam's normals so no line shows where the circle closes.
-    const n = geometry.attributes.normal;
+    const nrm = geometry.attributes.normal;
     for (let i = 0; i < rows; i++) {
       const a = i * cols, b = a + SEGMENTS;
       for (let c = 0; c < 3; c++) {
-        const avg = (n.array[a * 3 + c] + n.array[b * 3 + c]) / 2;
-        n.array[a * 3 + c] = n.array[b * 3 + c] = avg;
+        const avg = (nrm.array[a * 3 + c] + nrm.array[b * 3 + c]) / 2;
+        nrm.array[a * 3 + c] = nrm.array[b * 3 + c] = avg;
       }
     }
-    n.needsUpdate = true;
+    nrm.needsUpdate = true;
 
-    material.roughness = lerp(P.roughness, Q.roughness, t);
-    material.clearcoat = lerp(P.clearcoat, Q.clearcoat, t);
-    material.bumpScale = lerp(P.bump, Q.bump, t) * 0.6;
-    // The kiln: a warm glow that peaks halfway through the bisque firing.
-    const glow = Math.max(0, 1 - Math.abs(s - 5.55) / 0.55);
-    material.emissive.setRGB(0.55, 0.16, 0.02).multiplyScalar(glow * 0.35);
-    kiln.intensity = glow * 18;
+    if (contours) {
+      const out = contours.geometry.attributes.position.array;
+      let o = 0;
+      const put = (vi) => { out[o++] = positions[vi * 3]; out[o++] = positions[vi * 3 + 1]; out[o++] = positions[vi * 3 + 2]; };
+      for (const i of ringRows) for (let j = 0; j < SEGMENTS; j++) { put(i * cols + j); put(i * cols + j + 1); }
+      for (const j of meridians) for (let i = 0; i < M - 1; i++) { put(i * cols + j); put((i + 1) * cols + j); }
+      contours.geometry.attributes.position.needsUpdate = true;
+      contours.geometry.computeBoundingSphere();
+    }
+
+    if (style.material === "physical") {
+      material.roughness = lerp(P.roughness, Q.roughness, t);
+      material.clearcoat = lerp(P.clearcoat, Q.clearcoat, t);
+      material.bumpScale = lerp(P.bump, Q.bump, t) * 0.6;
+      material.emissive.setRGB(0.55, 0.16, 0.02).multiplyScalar(glow * 0.35);
+    } else if (style.material === "matte") {
+      material.roughness = lerp(1, 0.4, glaze);
+    }
+    kiln.intensity = glow * (style.toneMap ? 18 : 6);
     // The wheel is there while the piece is being thrown.
     const onWheel = clamp01((s - 1.4) / 0.5) * clamp01((5.3 - s) / 0.5);
-    wheel.material.opacity = onWheel;
+    wheel.children.forEach((m) => { m.material.transparent = true; m.material.opacity = onWheel; });
     wheel.visible = onWheel > 0.01;
     canvas.dataset.stage = s.toFixed(2);
     canvas.dataset.glow = glow.toFixed(2);
