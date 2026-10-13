@@ -1,0 +1,12 @@
+{
+  "name": "art-orders",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": { "mimetext": "^3.0.27" },
+  "devDependencies": { "wrangler": "^4.0.0" }
+}

@@ -1,6 +1,7 @@
 // Page content in both languages. Each section drives one stage of the clay
 // (see clay.js): 0 ball · 1 pinched open · 2 pinch bowl · 3 first coils ·
-// 4 coils built up · 5 smoothed and shaped · 6 bisque · 7 glazed.
+// 4 coils built up · 5 smoothed and shaped · 6 bisque · 7 glazed. The order
+// section comes after the last stage, so the finished jar stays on screen.
 //
 // PLACEHOLDERS to replace when ready: the three pieces under "work" (titles,
 // notes and photos - put photos in images/ and set `photo`).
@@ -11,7 +12,6 @@ window.CONTENT = {
     switchLang: "PT", switchLangLabel: "Ver em português",
     themeLabel: "Toggle dark or light theme",
     scrollHint: "Scroll to shape the clay",
-    cv: "CV ↗",
     sections: [
       { id: "top", eyebrow: "// ceramics · Porto", title: "Ivo Lopes", lead: "Earth, water, fire and time.", body: ["Ceramics, built by hand. Scroll down and follow a ball of clay all the way to a finished jar."] },
       { id: "wedge", eyebrow: "01 · prepare", title: "It starts as a ball", body: ["Clay is wedged first: pressed, folded and turned on the bench until the air is out and it is even all the way through. Then it is rolled into a ball.", "Skip it, and a hidden air pocket can crack the piece in the kiln weeks later."] },
@@ -21,7 +21,26 @@ window.CONTENT = {
       { id: "work", eyebrow: "05 · shape", title: "Work", body: ["The coils are blended into one smooth skin with fingers and a wooden rib. No two pieces come out alike, and each keeps a little of the hands that made it. A few pieces:"], gallery: true },
       { id: "fire", eyebrow: "06 · fire", title: "Through the fire", body: ["Bone dry, the piece goes into the kiln for its first firing, the bisque, at around 950°C. Clay turns into ceramic and shrinks a little on the way.", "Then glaze, and a second, hotter firing that melts it into glass."] },
       { id: "contact", eyebrow: "07 · glaze", title: "Finished", body: ["Questions, commissions, or just to talk clay:"], contact: true },
+      { id: "order", eyebrow: "08 · order", title: "Order a piece", body: ["Have something in mind? Send a photo or two of a piece you love, describe what you would like, and you will get a reply by email with a price."], order: true },
     ],
+    orderCta: "Order a piece →",
+    orderPage: { title: "Order a piece · Ivo Lopes", back: "← Back to the clay" },
+    form: {
+      name: "Your name", email: "Your email",
+      description: "What would you like?", descriptionHint: "Size, colours, what it is for…",
+      photos: "Photos", photosHint: "1 to 3: a piece you like, a sketch, a colour. Anything that helps.", choose: "Choose photos", remove: "Remove",
+      consent: "I agree that my name, email, message and photos are kept only to answer this request.",
+      send: "Send request", sending: "Sending…",
+      done: "Request {id} received. You will get a reply by email soon.",
+      errors: {
+        invalid_name: "Please add your name.", invalid_email: "That email does not look right.",
+        invalid_description: "Tell a little more about what you would like (at least a sentence).",
+        invalid_photos: "Add between 1 and 3 photos.", photo_too_large: "One of the photos is too large.",
+        consent_required: "Please tick the box to agree.", captcha_failed: "The spam check did not pass. Please try again.",
+        too_many: "Too many requests from here in the last hour. Please try again later.",
+        network: "Could not send. Check your connection and try again.", server_error: "Something went wrong on our side. Please try again, or email mail@ivolopes.com.",
+      },
+    },
     work: [
       { title: "Piece I", note: "Photo coming soon" },
       { title: "Piece II", note: "Photo coming soon" },
@@ -36,7 +55,6 @@ window.CONTENT = {
     switchLang: "EN", switchLangLabel: "View in English",
     themeLabel: "Alternar tema claro ou escuro",
     scrollHint: "Desliza para moldar o barro",
-    cv: "CV ↗",
     sections: [
       { id: "top", eyebrow: "// cerâmica · Porto", title: "Ivo Lopes", lead: "Terra, água, fogo e tempo.", body: ["Cerâmica construída à mão. Desliza para baixo e acompanha uma bola de barro até ser um jarro acabado."] },
       { id: "wedge", eyebrow: "01 · preparar", title: "Começa numa bola", body: ["Primeiro, o barro é amassado: pressionado, dobrado e rodado na bancada até sair o ar e ficar uniforme por dentro. Depois, enrola-se numa bola.", "Sem este passo, uma bolha de ar escondida pode rachar a peça no forno semanas depois."] },
@@ -46,7 +64,26 @@ window.CONTENT = {
       { id: "work", eyebrow: "05 · moldar", title: "Trabalhos", body: ["Os rolos são fundidos numa só pele lisa, com os dedos e uma costela de madeira. Não há duas peças iguais, e cada uma guarda um pouco das mãos que a fizeram. Algumas peças:"], gallery: true },
       { id: "fire", eyebrow: "06 · cozer", title: "Pelo fogo", body: ["Bem seca, a peça vai ao forno para a primeira cozedura, a chacota, a cerca de 950°C. O barro passa a cerâmica e encolhe um pouco pelo caminho.", "Depois vem o vidrado, e uma segunda cozedura, mais quente, que o derrete em vidro."] },
       { id: "contact", eyebrow: "07 · vidrar", title: "Acabado", body: ["Perguntas, encomendas, ou só para falar de barro:"], contact: true },
+      { id: "order", eyebrow: "08 · encomendar", title: "Encomendar uma peça", body: ["Tens uma ideia? Envia uma ou duas fotografias de uma peça de que gostes, descreve o que procuras, e recebes uma resposta por email com um orçamento."], order: true },
     ],
+    orderCta: "Encomendar uma peça →",
+    orderPage: { title: "Encomendar uma peça · Ivo Lopes", back: "← Voltar ao barro" },
+    form: {
+      name: "O teu nome", email: "O teu email",
+      description: "O que procuras?", descriptionHint: "Tamanho, cores, para que é…",
+      photos: "Fotografias", photosHint: "De 1 a 3: uma peça de que gostes, um esboço, uma cor. Tudo o que ajude.", choose: "Escolher fotografias", remove: "Remover",
+      consent: "Aceito que o meu nome, email, mensagem e fotografias sejam guardados só para responder a este pedido.",
+      send: "Enviar pedido", sending: "A enviar…",
+      done: "Pedido {id} recebido. Vais receber uma resposta por email em breve.",
+      errors: {
+        invalid_name: "Falta o teu nome.", invalid_email: "Esse email não parece estar certo.",
+        invalid_description: "Conta um pouco mais sobre o que procuras (pelo menos uma frase).",
+        invalid_photos: "Junta entre 1 e 3 fotografias.", photo_too_large: "Uma das fotografias é demasiado grande.",
+        consent_required: "Marca a caixa para aceitar.", captcha_failed: "A verificação anti-spam falhou. Tenta outra vez.",
+        too_many: "Demasiados pedidos a partir daqui na última hora. Tenta mais tarde.",
+        network: "Não foi possível enviar. Verifica a ligação e tenta outra vez.", server_error: "Algo correu mal do nosso lado. Tenta outra vez, ou escreve para mail@ivolopes.com.",
+      },
+    },
     work: [
       { title: "Peça I", note: "Fotografia em breve" },
       { title: "Peça II", note: "Fotografia em breve" },

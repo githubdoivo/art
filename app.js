@@ -24,7 +24,6 @@ langBtn.addEventListener("click", () => {
   location.href = `${location.pathname}?lang=${next}`;
 });
 $("#theme-toggle").setAttribute("aria-label", c.themeLabel);
-$("#cv-link").textContent = c.cv;
 $("#footer-text").textContent = c.footer;
 
 /* ---------- Content -------------------------------------------------------- */
@@ -39,7 +38,6 @@ $("#content").innerHTML = c.sections.map((s, i) => {
       </figure>`).join("")}</div>` : "";
   const contact = s.contact ? `<div class="contact-links">
       <a class="btn primary" href="mailto:${esc(c.email)}">${esc(c.email)}</a>
-      <a class="btn" href="https://ivolopes.com">${esc(c.cv)}</a>
     </div>` : "";
   return `<section class="section" id="${esc(s.id)}" data-stage="${i}">
     <div class="card">
@@ -47,7 +45,7 @@ $("#content").innerHTML = c.sections.map((s, i) => {
       ${heading}
       ${s.lead ? `<p class="lead">${esc(s.lead)}</p>` : ""}
       ${s.body.map((p) => `<p>${esc(p)}</p>`).join("")}
-      ${gallery}${contact}
+      ${gallery}${contact}${s.order ? `<div class="contact-links"><a class="btn primary" id="order-cta" href="/order/?lang=${c.lang}">${esc(c.orderCta)}</a></div>` : ""}
       ${i === 0 ? `<p class="hint">${esc(c.scrollHint)}</p>` : ""}
     </div>
   </section>`;

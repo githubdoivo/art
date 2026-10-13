@@ -1,0 +1,30 @@
+# The art.ivolopes.com order form's back end. See src/index.js.
+#   CLOUDFLARE_API_TOKEN=... npm run deploy
+name = "art-orders"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+routes = [{ pattern = "orders.ivolopes.com", custom_domain = true }]
+
+[vars]
+ALLOWED_ORIGINS = "https://art.ivolopes.com,http://localhost:8790,http://localhost:4174"
+OWNER_EMAIL = "ivolopes.engineer@gmail.com"
+FROM_EMAIL = "orders@ivolopes.com"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "art-orders"
+database_id = "b70682b6-1197-4a72-9a11-44c82655a61c"
+
+[[r2_buckets]]
+binding = "PHOTOS"
+bucket_name = "art-orders-photos"
+
+# Cloudflare Email Routing can only send to verified addresses - which is
+# exactly the point: these emails go to the owner, never to strangers.
+[[send_email]]
+name = "MAIL"
+destination_address = "ivolopes.engineer@gmail.com"
+
+# TURNSTILE_SECRET is a secret: wrangler secret put TURNSTILE_SECRET

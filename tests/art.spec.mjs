@@ -15,7 +15,7 @@ for (const lang of ["en", "pt"]) {
     page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(`/?lang=${lang}`);
     await expect(page.locator("html")).toHaveAttribute("lang", lang);
-    await expect(page.locator(".section")).toHaveCount(8);
+    await expect(page.locator(".section")).toHaveCount(9);
     await expect(page.locator(".piece")).toHaveCount(3);
     await expect(page.locator("#contact a[href^='mailto:']")).toHaveAttribute("href", "mailto:mail@ivolopes.com");
     expect(errors).toEqual([]);
@@ -107,4 +107,89 @@ test("no serious accessibility problems", async ({ page }) => {
   });
   const { violations } = await new AxeBuilder({ page }).analyze();
   expect(violations.filter((v) => ["serious", "critical"].includes(v.impact)).map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+});
+
+/* ---------- Order form ---------- */
+// Stand-ins for Turnstile and the order Worker, so tests never send real email.
+async function fakeServices(page, reply = { status: 201, body: { ok: true, id: "ORD-261013-TEST" } }) {
+  const sent = [];
+  await page.route("https://challenges.cloudflare.com/turnstile/v0/api.js*", (route) => route.fulfill({
+    contentType: "text/javascript",
+    body: "window.turnstile={render:(el,o)=>{setTimeout(()=>o.callback('test-token'),10);return 'w'},reset:()=>{}};window.__onTurnstile&&window.__onTurnstile();",
+  }));
+  await page.route("https://orders.ivolopes.com/orders", async (route) => {
+    sent.push(route.request().postDataBuffer()?.toString("latin1") || "");
+    await route.fulfill({ status: reply.status, contentType: "application/json", headers: { "Access-Control-Allow-Origin": "*" }, body: JSON.stringify(reply.body) });
+  });
+  return sent;
+}
+// A tiny valid PNG, as a "photo".
+const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+
+async function openOrder(page, lang = "en") {
+  await page.goto(`/order/?lang=${lang}`);
+  await expect(page.locator("#order-form")).toBeVisible();
+}
+
+test("ordering a piece: the request goes out with every field and the photo, and the reference comes back", async ({ page }) => {
+  const sent = await fakeServices(page);
+  await openOrder(page);
+  await page.fill("input[name=name]", "Ana Silva");
+  await page.fill("input[name=email]", "ana@example.com");
+  await page.fill("textarea[name=description]", "A tall jar with a blue glaze, for my kitchen.");
+  await page.setInputFiles("#order-photos", { name: "jar.png", mimeType: "image/png", buffer: PNG });
+  await expect(page.locator("#order-previews img")).toHaveCount(1);
+  await page.check("input[name=consent]");
+  await page.click("#order-send");
+  await expect(page.locator("#order-status")).toContainText("ORD-261013-TEST");
+  expect(sent).toHaveLength(1);
+  for (const part of ["Ana Silva", "ana@example.com", "blue glaze", "test-token", 'name="photos"', 'name="lang"']) {
+    expect(sent[0], `the request should include ${part}`).toContain(part);
+  }
+  await expect(page.locator("input[name=name]")).toHaveValue("");
+});
+
+test("missing details are caught before anything is sent", async ({ page }) => {
+  const sent = await fakeServices(page);
+  await openOrder(page);
+  await page.click("#order-send");
+  await expect(page.locator("#order-status")).toHaveText("Please add your name.");
+  await page.fill("input[name=name]", "Ana");
+  await page.fill("input[name=email]", "ana@example.com");
+  await page.fill("textarea[name=description]", "A tall jar with a blue glaze.");
+  await page.click("#order-send");
+  await expect(page.locator("#order-status")).toHaveText("Add between 1 and 3 photos.");
+  expect(sent).toHaveLength(0);
+});
+
+test("the server's answer is shown in the visitor's language", async ({ page }) => {
+  await fakeServices(page, { status: 429, body: { error: "too_many" } });
+  await openOrder(page, "pt");
+  await page.fill("input[name=name]", "Ana");
+  await page.fill("input[name=email]", "ana@example.com");
+  await page.fill("textarea[name=description]", "Um jarro alto com vidrado azul.");
+  await page.setInputFiles("#order-photos", { name: "jar.png", mimeType: "image/png", buffer: PNG });
+  await page.check("input[name=consent]");
+  await page.click("#order-send");
+  await expect(page.locator("#order-status")).toHaveText("Demasiados pedidos a partir daqui na última hora. Tenta mais tarde.");
+});
+
+test("the main page invites to order, and the button opens /order in the same language", async ({ page }) => {
+  await page.goto("/?lang=pt");
+  const cta = page.locator("#order-cta");
+  await cta.scrollIntoViewIfNeeded();
+  await expect(cta).toHaveText("Encomendar uma peça →");
+  await cta.click();
+  await expect(page).toHaveURL(/\/order\/\?lang=pt$/);
+  await expect(page.locator("h1")).toHaveText("Encomendar uma peça");
+});
+
+test("the order page shows the finished jar beside the form, with no errors", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("/order/?lang=en");
+  await expect(page).toHaveTitle("Order a piece · Ivo Lopes");
+  await expect.poll(() => page.locator("#clay").evaluate((c) => c.dataset.stage)).toBe("7.00");
+  await expect(page.locator("#back-link")).toHaveAttribute("href", "/?lang=en");
+  expect(errors).toEqual([]);
 });
