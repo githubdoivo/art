@@ -1,12 +1,14 @@
 // The clay piece: one lathe-turned mesh whose profile, surface and colour
 // follow a "stage" value from 0 to 7, driven by the page's scroll position.
 //
-//   0 lump · 1 wedged · 2 centred · 3 opened · 4 walls pulled · 5 shaped jar
-//   6 bisque-fired · 7 glazed
+//   0 ball · 1 pinched open · 2 pinch bowl · 3 first coils · 4 coils built up
+//   5 smoothed and shaped · 6 bisque-fired · 7 glazed
 //
-// The shape is a profile curve (radius against height) spun around the
-// vertical axis, as on a wheel. Every stage's profile is resampled to the
-// same number of points, so moving between stages is a plain interpolation.
+// Built by hand, not thrown: pinched, then coiled. The shape is a profile
+// curve (radius against height) spun around the vertical axis; the hands show
+// in what is added on top of it - thumb dents, rope-like coils, a slightly
+// wonky finished form. Every stage's profile is resampled to the same number
+// of points, so moving between stages is a plain interpolation.
 import * as THREE from "three";
 
 
@@ -15,29 +17,29 @@ import * as THREE from "three";
 // inner one from the rim back down to the floor. Solid stages close the inner
 // wall at the top, on the axis.
 const PROFILES = [
-  { // 0 - a rough lump, just out of the bag
+  { // 0 - a ball of clay
     outer: [[0, 0], [0.5, 0.03], [0.82, 0.22], [0.95, 0.58], [0.88, 0.95], [0.6, 1.17], [0.18, 1.26]],
     inner: [[0.18, 1.26], [0.06, 1.27], [0, 1.27]],
   },
-  { // 1 - wedged: pressed down and spread
-    outer: [[0, 0], [0.9, 0.02], [1.24, 0.12], [1.32, 0.3], [1.17, 0.47], [0.72, 0.57], [0.16, 0.6]],
-    inner: [[0.16, 0.6], [0.05, 0.6], [0, 0.6]],
+  { // 1 - pinched open: a thumb pressed into the ball
+    outer: [[0, 0], [0.6, 0.03], [0.9, 0.24], [0.96, 0.56], [0.84, 0.86], [0.56, 1.02], [0.4, 1.04]],
+    inner: [[0.4, 1.04], [0.3, 0.97], [0.22, 0.76], [0.12, 0.62], [0, 0.6]],
   },
-  { // 2 - centred on the wheel, coned up
-    outer: [[0, 0], [0.88, 0], [1, 0.14], [0.96, 0.5], [0.72, 0.86], [0.36, 1.06], [0.08, 1.12]],
-    inner: [[0.08, 1.12], [0.03, 1.12], [0, 1.12]],
+  { // 2 - pinched out into a small bowl: the base
+    outer: [[0, 0], [0.7, 0.02], [1.0, 0.24], [1.08, 0.55], [1.05, 0.76]],
+    inner: [[1.05, 0.76], [0.93, 0.71], [0.88, 0.46], [0.62, 0.26], [0.3, 0.21], [0, 0.2]],
   },
-  { // 3 - opened: a thick-walled bowl
-    outer: [[0, 0], [0.9, 0], [1.01, 0.14], [1.03, 0.5], [0.99, 0.84], [0.9, 0.97]],
-    inner: [[0.9, 0.97], [0.76, 0.92], [0.7, 0.62], [0.57, 0.32], [0.3, 0.26], [0, 0.25]],
+  { // 3 - the first coils laid around the rim
+    outer: [[0, 0], [0.7, 0.02], [1.0, 0.24], [1.08, 0.55], [1.07, 0.86], [1.03, 1.12], [1.0, 1.2]],
+    inner: [[1.0, 1.2], [0.88, 1.14], [0.92, 0.86], [0.93, 0.6], [0.85, 0.42], [0.6, 0.24], [0.3, 0.21], [0, 0.2]],
   },
-  { // 4 - walls pulled up into a cylinder
-    outer: [[0, 0], [0.74, 0], [0.82, 0.1], [0.8, 0.6], [0.78, 1.2], [0.76, 1.74], [0.72, 1.84]],
-    inner: [[0.72, 1.84], [0.66, 1.76], [0.68, 1.2], [0.7, 0.6], [0.62, 0.22], [0.3, 0.18], [0, 0.18]],
+  { // 4 - coil after coil, curving in towards a shoulder and neck
+    outer: [[0, 0], [0.7, 0.02], [1.0, 0.24], [1.08, 0.55], [1.07, 0.9], [0.96, 1.28], [0.74, 1.58], [0.56, 1.76], [0.53, 1.86]],
+    inner: [[0.53, 1.86], [0.42, 1.8], [0.58, 1.58], [0.82, 1.28], [0.95, 0.9], [0.94, 0.6], [0.85, 0.42], [0.6, 0.24], [0.3, 0.21], [0, 0.2]],
   },
-  { // 5 - shaped: belly, shoulder, neck and a rounded, flared lip
-    outer: [[0, 0], [0.48, 0], [0.58, 0.06], [0.86, 0.45], [1.01, 0.9], [0.96, 1.3], [0.78, 1.54], [0.6, 1.69], [0.47, 1.8], [0.43, 1.94], [0.49, 2.05], [0.535, 2.1], [0.53, 2.135]],
-    inner: [[0.53, 2.135], [0.5, 2.15], [0.465, 2.125], [0.4, 2.02], [0.37, 1.93], [0.39, 1.8], [0.55, 1.67], [0.73, 1.52], [0.89, 1.3], [0.94, 0.9], [0.79, 0.45], [0.46, 0.12], [0.2, 0.1], [0, 0.1]],
+  { // 5 - coils smoothed into one skin: belly, shoulder, neck, a rounded lip
+    outer: [[0, 0], [0.5, 0], [0.62, 0.07], [0.9, 0.45], [1.04, 0.9], [0.99, 1.3], [0.8, 1.54], [0.61, 1.69], [0.49, 1.8], [0.45, 1.94], [0.5, 2.04], [0.545, 2.09], [0.54, 2.13]],
+    inner: [[0.54, 2.13], [0.5, 2.15], [0.46, 2.12], [0.39, 2.01], [0.35, 1.92], [0.37, 1.79], [0.52, 1.66], [0.7, 1.51], [0.87, 1.29], [0.93, 0.9], [0.8, 0.46], [0.48, 0.15], [0.2, 0.13], [0, 0.13]],
   },
 ];
 // Firing shrinks clay a few percent; the glaze firing keeps that shape.
@@ -76,16 +78,18 @@ function sampled(m) {
 }
 
 /* ---------- Stage parameters ---------------------------------------------- */
-// How worked the surface looks, the throwing rings, and the material.
+// How worked the surface looks, the marks of the hands, and the material.
+// coils: height of the coil ropes; dents: finger and thumb marks; asym: how
+// lopsided - a hand-built piece never quite loses it.
 const STAGES = [
-  { rough: 0.13, rings: 0, asym: 1, color: "#86593f", roughness: 0.78, clearcoat: 0.1, bump: 1.4 },
-  { rough: 0.1, rings: 0, asym: 0.8, color: "#87593e", roughness: 0.76, clearcoat: 0.12, bump: 1.3 },
-  { rough: 0.022, rings: 0.0015, asym: 0.15, color: "#7f5238", roughness: 0.45, clearcoat: 0.55, bump: 0.6 },
-  { rough: 0.014, rings: 0.0025, asym: 0.05, color: "#82553b", roughness: 0.45, clearcoat: 0.5, bump: 0.5 },
-  { rough: 0.009, rings: 0.003, asym: 0, color: "#86593f", roughness: 0.48, clearcoat: 0.45, bump: 0.45 },
-  { rough: 0.006, rings: 0.0015, asym: 0, color: "#a9805f", roughness: 0.82, clearcoat: 0.05, bump: 0.5 },
-  { rough: 0.005, rings: 0.001, asym: 0, color: "#e0b49a", roughness: 0.95, clearcoat: 0, bump: 0.55 },
-  { rough: 0.004, rings: 0.0006, asym: 0, color: "#2f6d72", roughness: 0.14, clearcoat: 1, bump: 0.08 },
+  { rough: 0.13, coils: 0, dents: 0, asym: 1, color: "#86593f", roughness: 0.78, clearcoat: 0.1, bump: 1.4 },
+  { rough: 0.07, coils: 0, dents: 0.06, asym: 0.6, color: "#87593e", roughness: 0.7, clearcoat: 0.15, bump: 1.2 },
+  { rough: 0.04, coils: 0, dents: 0.04, asym: 0.35, color: "#85583d", roughness: 0.66, clearcoat: 0.18, bump: 1.0 },
+  { rough: 0.03, coils: 0.085, dents: 0.025, asym: 0.25, color: "#86593f", roughness: 0.66, clearcoat: 0.18, bump: 1.0 },
+  { rough: 0.026, coils: 0.075, dents: 0.02, asym: 0.2, color: "#885b40", roughness: 0.68, clearcoat: 0.15, bump: 0.9 },
+  { rough: 0.012, coils: 0, dents: 0.006, asym: 0.12, color: "#a9805f", roughness: 0.82, clearcoat: 0.05, bump: 0.6 },
+  { rough: 0.01, coils: 0, dents: 0.005, asym: 0.12, color: "#e0b49a", roughness: 0.95, clearcoat: 0, bump: 0.55 },
+  { rough: 0.008, coils: 0, dents: 0.004, asym: 0.12, color: "#2f6d72", roughness: 0.14, clearcoat: 1, bump: 0.08 },
 ];
 const BISQUE = new THREE.Color("#e0b49a");
 const GLAZE_RIM = new THREE.Color("#7fb3ae");
@@ -148,7 +152,7 @@ function shadowTexture() {
 export const STYLES = {
   realistic: { m: 44, segments: 120, material: "physical", toneMap: true, noise: 1 },
   toon: {
-    m: 32, segments: 80, material: "toon", noise: 0.55, outline: 0.028, ink: "#2a1d16",
+    m: 110, segments: 96, material: "toon", noise: 0.18, outline: 0.028, ink: "#2a1d16",
     palette: ["#b8744b", "#b8744b", "#a9653f", "#ad6a44", "#b06e48", "#cf9b70", "#f2c7aa", "#3f9089"],
     glaze: { rim: "#a6dccf", pool: "#2b6f6b", foot: "#f2c7aa" },
   },
@@ -187,10 +191,10 @@ function outlineMesh(geometry, color, thickness) {
 }
 
 /* ---------- Scene ---------------------------------------------------------- */
-export function createClay(canvas, { reducedMotion = false, style: styleName = "realistic" } = {}) {
-  const style = STYLES[styleName] ?? STYLES.realistic;
+export function createClay(canvas, { reducedMotion = false, style: styleName = "toon" } = {}) {
+  const style = STYLES[styleName] ?? STYLES.toon;
   const M = style.m, SEGMENTS = style.segments, SAMPLED = sampled(M);
-  canvas.dataset.style = STYLES[styleName] ? styleName : "realistic";
+  canvas.dataset.style = STYLES[styleName] ? styleName : "toon";
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -257,18 +261,19 @@ export function createClay(canvas, { reducedMotion = false, style: styleName = "
     piece.add(contours);
   }
 
-  const wheelMat = {
-    physical: () => new THREE.MeshStandardMaterial({ color: 0x8d9196, metalness: 0.7, roughness: 0.35, transparent: true }),
-    toon: () => new THREE.MeshToonMaterial({ color: 0x9aa0a6, gradientMap: toonGradient(), transparent: true }),
-    flat: () => new THREE.MeshBasicMaterial({ color: 0xe9e0d4, transparent: true }),
-    faceted: () => new THREE.MeshStandardMaterial({ color: 0x8f949a, flatShading: true, roughness: 0.7, transparent: true }),
-    matte: () => new THREE.MeshStandardMaterial({ color: 0xd8d2cb, roughness: 1, transparent: true }),
+  // The wooden board the piece is built on - there is no wheel.
+  const boardMat = {
+    physical: () => new THREE.MeshStandardMaterial({ color: 0xa47a52, roughness: 0.8, transparent: true }),
+    toon: () => new THREE.MeshToonMaterial({ color: 0xc9a06f, gradientMap: toonGradient(), transparent: true }),
+    flat: () => new THREE.MeshBasicMaterial({ color: 0xe9dcc8, transparent: true }),
+    faceted: () => new THREE.MeshStandardMaterial({ color: 0xb38a5c, flatShading: true, roughness: 0.8, transparent: true }),
+    matte: () => new THREE.MeshStandardMaterial({ color: 0xdcc7ae, roughness: 1, transparent: true }),
   }[style.material]();
-  const wheelGeo = new THREE.CylinderGeometry(1.55, 1.55, 0.08, style.material === "faceted" ? 12 : 96);
+  const boardGeo = new THREE.CylinderGeometry(1.45, 1.45, 0.09, style.material === "faceted" ? 10 : 64);
   const wheel = new THREE.Group();
-  wheel.add(new THREE.Mesh(wheelGeo, wheelMat));
-  if (style.outline) wheel.add(outlineMesh(wheelGeo, style.ink, style.outline * 0.8));
-  wheel.position.y = -0.045;
+  wheel.add(new THREE.Mesh(boardGeo, boardMat));
+  if (style.outline) wheel.add(outlineMesh(boardGeo, style.ink, style.outline * 0.8));
+  wheel.position.y = -0.05;
   scene.add(wheel);
 
   const shadow = new THREE.Mesh(
@@ -293,7 +298,8 @@ export function createClay(canvas, { reducedMotion = false, style: styleName = "
       profile[i][1] = lerp(A[i][1], B[i][1], t);
     }
     const n0 = style.noise;
-    const rough = lerp(P.rough, Q.rough, t) * n0, rings = lerp(P.rings, Q.rings, t) * (style.contours ? 0.3 : 1), asym = lerp(P.asym, Q.asym, t);
+    const rough = lerp(P.rough, Q.rough, t) * n0, asym = lerp(P.asym, Q.asym, t);
+    const coils = lerp(P.coils, Q.coils, t), dents = lerp(P.dents, Q.dents, t);
     const height = Math.max(...profile.map((p) => p[1]));
     const glaze = clamp01(s - 6); // 0 before the glaze firing, 1 once glazed
     // The kiln: a warm glow that peaks halfway through the bisque firing.
@@ -307,13 +313,21 @@ export function createClay(canvas, { reducedMotion = false, style: styleName = "
       const along = i / (rows - 1);
       for (let j = 0; j < cols; j++) {
         const a = (j / SEGMENTS) * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a);
-        // Hand-worked roughness, the lump's lopsidedness, and throwing rings.
+        // Hand-worked roughness and the lopsidedness of a hand-built piece.
         let r = r0;
         if (r0 > 0.002) {
           r += rough * fbm(ca * 1.6 + 3, y * 2.2, sa * 1.6 + 7);
           r += asym * 0.06 * n0 * fbm(ca * 0.8 + 11, y * 1.1 + 2, sa * 0.8 - 5);
           r += asym * 0.07 * r0 * Math.cos(a - 0.8) + asym * 0.04 * r0 * Math.cos(2 * a + 1.3);
-          r += rings * Math.sin(y * 38) * (inside ? 0.6 : 1);
+          // Thumb and finger dents pressed into the surface.
+          r -= dents * Math.min(1, n0 * 2) * Math.pow(Math.max(0, noise3(ca * 2.6 + 1, y * 3.2, sa * 2.6 + 4)), 2) * 2.2;
+          // Coils: rope-like rings stacked above the pinched base, each one
+          // rolled by hand, so a little thicker or thinner around its length.
+          if (coils > 0 && y > 0.66) {
+            const ph = (y - 0.66) / 0.13, f = ph - Math.floor(ph);
+            const rope = Math.sqrt(Math.max(0, 1 - Math.pow(2 * f - 1, 2)));
+            r += coils * (rope - 0.62) * (1 + 0.35 * noise3(ca * 2 + Math.floor(ph) * 3.1, Math.floor(ph), sa * 2)) * (inside ? 0.7 : 1);
+          }
         }
         const v = (i * cols + j) * 3;
         positions[v] = Math.max(0, r) * ca;
@@ -370,10 +384,10 @@ export function createClay(canvas, { reducedMotion = false, style: styleName = "
       material.roughness = lerp(1, 0.4, glaze);
     }
     kiln.intensity = glow * (style.toneMap ? 18 : 6);
-    // The wheel is there while the piece is being thrown.
-    const onWheel = clamp01((s - 1.4) / 0.5) * clamp01((5.3 - s) / 0.5);
-    wheel.children.forEach((m) => { m.material.transparent = true; m.material.opacity = onWheel; });
-    wheel.visible = onWheel > 0.01;
+    // The board stays while the piece is being made, and is left behind for the kiln.
+    const onBoard = clamp01((5.3 - s) / 0.5);
+    wheel.children.forEach((m) => { m.material.opacity = onBoard; });
+    wheel.visible = onBoard > 0.01;
     canvas.dataset.stage = s.toFixed(2);
     canvas.dataset.glow = glow.toFixed(2);
     return glow;
@@ -397,9 +411,8 @@ export function createClay(canvas, { reducedMotion = false, style: styleName = "
     if (!running) return;
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
-    // Faster while on the wheel, a slow turn for display otherwise.
-    const onWheel = stage > 1.6 && stage < 5.2;
-    if (!reducedMotion) spin += dt * (onWheel ? 1.6 : 0.25);
+    // A slow turn, so every side of the piece shows.
+    if (!reducedMotion) spin += dt * 0.3;
     piece.rotation.y = spin;
     if (Math.abs(stage - shown) > 0.0005) { build(stage); shown = stage; }
     renderer.render(scene, camera);

@@ -24,7 +24,7 @@
     const style = new URLSearchParams(location.search).get("style") || "realistic";
     const names = { realistic: "Realistic", toon: "Cel-shaded", ink: "Ink sketch", lowpoly: "Low-poly", pastel: "Soft pastel" };
     document.getElementById("title").innerHTML = `${names[style]}<small>style: ${style}</small>`;
-    const stages = [[0, "lump"], [3, "opened"], [5, "shaped"], [5.55, "in the kiln"], [7, "glazed"]];
+    const stages = [[1, "pinched"], [3, "first coils"], [4, "built up"], [5.55, "in the kiln"], [7, "glazed"]];
     const row = document.getElementById("row");
     for (const [s, label] of stages) {
       const fig = document.createElement("figure");

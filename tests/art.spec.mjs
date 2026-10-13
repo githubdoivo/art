@@ -102,7 +102,8 @@ test("no serious accessibility problems", async ({ page }) => {
     document.querySelectorAll(".section").forEach((s) => s.classList.add("in"));
     // Only animations that end: the scroll hint's drip loops forever on purpose.
     const finite = document.getAnimations().filter((a) => a.effect?.getTiming().iterations !== Infinity);
-    return Promise.all(finite.map((a) => a.finished));
+    // A fade can be interrupted and restarted; settled either way is fine.
+    return Promise.allSettled(finite.map((a) => a.finished));
   });
   const { violations } = await new AxeBuilder({ page }).analyze();
   expect(violations.filter((v) => ["serious", "critical"].includes(v.impact)).map((v) => `${v.id}: ${v.help}`)).toEqual([]);

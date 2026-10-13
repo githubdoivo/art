@@ -85,7 +85,7 @@ function currentStage() {
 let clay = null;
 try {
   // ?style= previews the other art styles (see STYLES in clay.js).
-  clay = createClay($("#clay"), { reducedMotion, style: params.get("style") || "realistic" });
+  clay = createClay($("#clay"), { reducedMotion, style: params.get("style") || "toon" });
 } catch (err) {
   // No WebGL: a still drawing of the finished jar stands in.
   document.documentElement.classList.add("no-webgl");
