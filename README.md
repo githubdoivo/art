@@ -2,26 +2,24 @@
 
 [![CI](https://github.com/githubdoivo/art/actions/workflows/ci.yml/badge.svg)](https://github.com/githubdoivo/art/actions/workflows/ci.yml)
 
-Ceramics by Ivo Lopes, built by hand. As you scroll, a cel-shaded 3D ball of
-clay is pinched open, built up coil by coil, smoothed into a jar,
-bisque-fired and glazed, with each step of the page's text alongside it.
+Ceramics by Ivo Lopes, as an artist's sketchbook on washi paper: a
+watercolour of the gourd on a table, the making told as a scroll story (five
+drawings pressed onto the wall like notes), the real pieces taped in on torn
+paper, a watercolour of Porto, and the order button. No menu: only PT/EN.
 
-- **`clay.js`**: the piece. A profile curve (radius against height) spun
-  around the axis, one profile per stage, resampled to the same points so
-  stages blend smoothly. The hands show in what is layered on top: thumb
-  dents, rope-like coils, a form that stays a little wonky. Colour and finish
-  (clay → bone dry → bisque → glaze, with a bare foot ring) follow the stage
-  too. Cel-shaded by default; `?style=realistic|ink|lowpoly|pastel` previews
-  the other looks. three.js, no build step.
-- **`content.js`**: all the text, in English and Portuguese. The three
-  pieces under "Work" are placeholders: add photos to `images/` and set
-  `photo` on each.
-- **`app.js`**: turns the scroll position into the clay's stage, plus the
-  language and theme switches.
-- Phones: the clay sits in the top half and each section's text arrives in a
-  card below it. Browsers without WebGL get a still drawing of the finished jar.
+- **`index.html`, `book.css`, `book.js`**: the home page. All text is real
+  text, from `content.js` (`book`, English and Portuguese).
+- **`book/`**: the images. Step drawings, tape strips, the header painting
+  (`header.webp`, `header-900.webp` for phones, edges faded into the page)
+  and the Porto watercolour come from ChatGPT (prompts in
+  `~/Downloads/art-refs/PROMPTS-v3.md`). `paper-tile.webp` is a seamless
+  560px paper tile cut from `paper.webp`, so the page shows no seams.
+  `work-*.webp` are real pieces cut out of their photos and set on torn
+  paper (no shadows): to add one, make a 720x900 card the same way and add it
+  to `pieces` in `content.js` (both languages, with a describing `alt`).
+- **`/order/`**: the order form (`order-page.js`, `order.js`, `styles.css`),
+  still with the 3D jar from `clay.js` beside it.
 
-`npm test` runs the Playwright tests (both languages, scroll-to-stage, the
-kiln glow, the phone layout never covering the clay, the no-WebGL fallback,
-accessibility). CI runs them, plus a Lighthouse audit, on every push and daily.
-`npm run og` re-renders the link preview image: run it after any change to the clay or its style, and bump the `?v=` on `og:image` in `index.html` so chat apps fetch the new one instead of a cached copy.
+`npm test` runs the Playwright tests (both languages, every image loads,
+photo descriptions, phone width, accessibility, the order form). CI runs them, plus a Lighthouse audit, on every push and daily.
+`npm run og` re-renders the link preview image: run it after a visible change to the home page, and bump the `?v=` on `og:image` in `index.html` so chat apps fetch the new one instead of a cached copy.
