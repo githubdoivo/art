@@ -1,11 +1,8 @@
-// art.ivolopes.com/order/ - the order form on its own page, beside the
-// finished jar. Same content, languages and theme as the main page.
-import { createClay } from "./clay.js";
+// art.ivolopes.com/order/: the order form as a page of the sketchbook.
+// Same content and languages as the home page.
 import { orderFormHtml, wireOrderForm } from "./order.js";
 
 const $ = (s) => document.querySelector(s);
-const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
-
 const params = new URLSearchParams(location.search);
 let saved = null;
 try { saved = localStorage.getItem("lang"); } catch (_) {}
@@ -15,41 +12,25 @@ if (params.get("lang")) { try { localStorage.setItem("lang", c.lang); } catch (_
 document.documentElement.lang = c.lang;
 document.title = c.orderPage.title;
 
-const section = c.sections.find((s) => s.order);
-$("#content").innerHTML = `<section class="section in" id="order">
-  <div class="card">
-    <p class="eyebrow">${esc(section.eyebrow)}</p>
-    <h1>${esc(section.title)}</h1>
-    ${section.body.map((p) => `<p>${esc(p)}</p>`).join("")}
-    ${orderFormHtml(c.form)}
-  </div>
-</section>`;
+const o = c.orderPage;
+$("#order-title").textContent = o.heading;
+$("#order-intro").textContent = o.intro;
+$("#order-note").textContent = o.note;
+$("#order-piece").alt = c.book.pieces.find((p) => p.img === "blue").alt;
+$("#footer").textContent = c.footer;
+$("#form-slot").outerHTML = orderFormHtml(c.form);
 wireOrderForm(c.form, c.lang);
 
-const home = `/?lang=${c.lang}`;
-$("#home-link").href = home;
-$("#back-link").href = home;
-$("#back-link").textContent = c.orderPage.back;
+const back = $("#back-link");
+back.href = `/?lang=${c.lang}`;
+back.textContent = o.back;
 
-const langBtn = $("#lang-toggle");
-langBtn.textContent = c.switchLang;
-langBtn.setAttribute("aria-label", c.switchLangLabel);
-langBtn.addEventListener("click", () => {
+const lang = $("#lang-toggle");
+lang.textContent = c.switchLang;
+lang.setAttribute("aria-label", c.switchLangLabel);
+lang.title = c.switchLangLabel;
+lang.addEventListener("click", () => {
   const next = c.lang === "pt" ? "en" : "pt";
   try { localStorage.setItem("lang", next); } catch (_) {}
   location.href = `${location.pathname}?lang=${next}`;
 });
-
-const root = document.documentElement;
-$("#theme-toggle").setAttribute("aria-label", c.themeLabel);
-$("#theme-toggle").addEventListener("click", () => {
-  const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
-  root.dataset.theme = dark ? "light" : "dark";
-  try { localStorage.setItem("theme", root.dataset.theme); } catch (_) {}
-});
-
-try {
-  createClay($("#clay"), { reducedMotion: matchMedia("(prefers-reduced-motion: reduce)").matches }).setStage(7);
-} catch {
-  root.classList.add("no-webgl");
-}

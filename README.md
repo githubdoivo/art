@@ -17,8 +17,7 @@ paper, a watercolour of Porto, and the order button. No menu: only PT/EN.
   `work-*.webp` are real pieces cut out of their photos and set on torn
   paper (no shadows): to add one, make a 720x900 card the same way and add it
   to `pieces` in `content.js` (both languages, with a describing `alt`).
-- **`/order/`**: the order form (`order-page.js`, `order.js`, `styles.css`),
-  still with the 3D jar from `clay.js` beside it.
+- **`/order/`**: the order form as a page of the sketchbook (`order-page.js`, `order.js`, `order.css`).
 
 `npm test` runs the Playwright tests (both languages, every image loads,
 photo descriptions, phone width, accessibility, the order form). CI runs them, plus a Lighthouse audit, on every push and daily.

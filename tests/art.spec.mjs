@@ -108,7 +108,7 @@ test("the server's answer is shown in the visitor's language", async ({ page }) 
   await page.setInputFiles("#order-photos", { name: "jar.png", mimeType: "image/png", buffer: PNG });
   await page.check("input[name=consent]");
   await page.click("#order-send");
-  await expect(page.locator("#order-status")).toHaveText("Demasiados pedidos a partir daqui na última hora. Tenta mais tarde.");
+  await expect(page.locator("#order-status")).toHaveText("Demasiados pedidos a partir daqui na última hora. Basta tentar mais tarde.");
 });
 
 test("the main page invites to order, and the button opens /order in the same language", async ({ page }) => {
@@ -121,14 +121,61 @@ test("the main page invites to order, and the button opens /order in the same la
   await expect(page.locator("h1")).toHaveText("Encomendar uma peça");
 });
 
-test("the order page shows the finished jar beside the form, with no errors", async ({ page }) => {
+test("the order page is a page of the sketchbook, with no errors and no broken images", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/order/?lang=en");
   await expect(page).toHaveTitle("Order a piece · Ivo Lopes");
-  await expect.poll(() => page.locator("#clay").evaluate((c) => c.dataset.stage)).toBe("7.00");
+  await expect(page.locator("h1")).toHaveText("Order a piece");
   await expect(page.locator("#back-link")).toHaveAttribute("href", "/?lang=en");
+  await expect(page.locator("#back-link")).toHaveText("Back");
+  await expect(page.locator("canvas, script[type=importmap]")).toHaveCount(0);
+  const broken = () => page.$$eval("img", (imgs) => imgs.filter((i) => getComputedStyle(i).display !== "none" && (!i.complete || !i.naturalWidth)).map((i) => i.getAttribute("src")));
+  await expect.poll(broken).toEqual([]);
   expect(errors).toEqual([]);
+});
+
+test("the order page has no theme switch and only home, email and language", async ({ page }) => {
+  await page.goto("/order/?lang=en");
+  await expect(page.locator("#theme-toggle")).toHaveCount(0);
+  const hrefs = await page.$$eval("a[href]", (as) => as.map((a) => a.getAttribute("href")));
+  for (const h of hrefs) expect(h).toMatch(/^(\/\?lang=(en|pt)|mailto:mail@ivolopes\.com)$/);
+});
+
+test("the order page switches language and keeps it", async ({ page }) => {
+  await page.goto("/order/?lang=en");
+  await page.locator("#lang-toggle").click();
+  await expect(page.locator("h1")).toHaveText("Encomendar uma peça");
+  await expect(page.locator("#back-link")).toHaveText("Voltar");
+  await page.goto("/order/");
+  await expect(page.locator("html")).toHaveAttribute("lang", "pt");
+});
+
+test("the order page in Portuguese is impersonal: it never says tu", async ({ page }) => {
+  await page.goto("/order/?lang=pt");
+  const text = await page.locator("body").innerText();
+  const hints = await page.$$eval("[placeholder]", (els) => els.map((e) => e.placeholder).join(" "));
+  expect(`${text} ${hints}`).not.toMatch(/(?<!\p{L})(tens|envia|gostes|recebes|teu|tua|podes|queres|procuras|tenta|vais|junta|marca|conta)(?!\p{L})/iu);
+  // and every error message too
+  const errs = await page.evaluate(() => Object.values(window.CONTENT.pt.form.errors).join(" ") + " " + window.CONTENT.pt.form.done);
+  expect(errs).not.toMatch(/(?<!\p{L})(tens|envia|tenta|vais|junta|marca|conta|verifica|escreve)(?!\p{L})/iu);
+});
+
+test("the order page has no serious accessibility problems, in both languages", async ({ page }) => {
+  for (const lang of ["en", "pt"]) {
+    await page.goto(`/order/?lang=${lang}`);
+    const { violations } = await new AxeBuilder({ page }).exclude("#order-turnstile").analyze();
+    const serious = violations.filter((v) => ["serious", "critical"].includes(v.impact));
+    expect(serious.map((v) => `${v.id}: ${v.help}`), lang).toEqual([]);
+  }
+});
+
+test("the order page does not scroll sideways on a phone", async ({ page }) => {
+  await page.setViewportSize({ width: 340, height: 740 });
+  for (const lang of ["en", "pt"]) {
+    await page.goto(`/order/?lang=${lang}`);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth), lang).toBeLessThanOrEqual(0);
+  }
 });
 
 test("the header has no menu: only the language switch", async ({ page }) => {
@@ -180,11 +227,18 @@ test("the shell piece is called a palette", async ({ page }) => {
 test("Portuguese copy is impersonal: it never says tu", async ({ page }) => {
   await page.goto("/?lang=pt");
   const text = await page.locator("body").innerText();
-  expect(text).not.toMatch(/\b(tens|envia|gostes|recebes|teu|tua|podes|queres|fala)\b/i);
+  expect(text).not.toMatch(/(?<!\p{L})(tens|envia|gostes|recebes|teu|tua|podes|queres|fala)(?!\p{L})/iu);
 });
 
 test("the main page links only to its own order page and the email", async ({ page }) => {
   await page.goto("/?lang=en");
   const hrefs = await page.$$eval("a[href]", (as) => as.map((a) => a.getAttribute("href")));
   for (const h of hrefs) expect(h).toMatch(/^(#.+|\/order\/\?lang=(en|pt)|mailto:mail@ivolopes\.com)$/);
+});
+
+test("the scrollbar is thin and quiet: ink on the paper", async ({ page }) => {
+  await page.goto("/?lang=en");
+  const sb = await page.evaluate(() => { const s = getComputedStyle(document.documentElement); return [s.scrollbarWidth, s.scrollbarColor]; });
+  expect(sb[0]).toBe("thin");
+  expect(sb[1]).toContain("rgba(94, 81, 70");
 });

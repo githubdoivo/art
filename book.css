@@ -132,3 +132,11 @@ section > h2 { margin-bottom: 18px; }
   .lines .tale { font-size: 21px; }
   .prints { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 44px 64px; padding: 0 4%; }
 }
+
+/* Scrollbar: thin and quiet, a line of ink on the paper (no arrows, no box). */
+html { scrollbar-width: thin; scrollbar-color: rgba(94, 81, 70, .38) transparent; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(94, 81, 70, .32); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background-color: rgba(127, 50, 31, .5); }
+::-webkit-scrollbar-button { display: none; }

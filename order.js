@@ -47,7 +47,7 @@ function loadTurnstile(container, lang, onToken) {
   const render = () => window.turnstile.render(container, {
     sitekey: TURNSTILE_SITEKEY,
     language: lang,
-    theme: "auto",
+    theme: "light",
     callback: onToken,
     "expired-callback": () => onToken(null),
   });

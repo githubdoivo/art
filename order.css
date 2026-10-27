@@ -1,0 +1,78 @@
+/* The order page: one page of the sketchbook (book.css gives the paper, type,
+   seal, tape and buttons). The form sits on a sheet of paper taped in. */
+
+.order-top {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) 0 max(20px, env(safe-area-inset-left));
+}
+.back { font: italic 400 19px var(--display); color: var(--ink); text-decoration: none; }
+.back::before { content: "← "; }
+.back:hover { text-decoration: underline; text-underline-offset: 4px; }
+
+.order-main {
+  display: grid; gap: 40px; max-width: 1080px; margin: 0 auto;
+  padding: 26px max(16px, env(safe-area-inset-right)) 56px max(16px, env(safe-area-inset-left));
+}
+.order-side { display: grid; gap: 14px; align-content: start; }
+.order-side .name-row { display: flex; align-items: center; gap: 16px; }
+.order-side h1 { font: 500 clamp(36px, 7vw, 54px)/1.05 var(--display); text-wrap: balance; }
+.order-intro { color: var(--ink-soft); max-width: 34em; }
+.order-piece { display: none; position: relative; margin: 18px 0 0; width: min(78%, 300px); transform: rotate(-2deg); }
+.order-piece .piece { display: block; width: 100%; filter: drop-shadow(1px 3px 3px rgba(80, 55, 30, .28)); }
+.order-piece .tape { width: 44%; top: -10px; left: 28%; }
+
+/* The sheet: lighter paper, torn at the bottom, taped at the top corners */
+.sheet {
+  position: relative; padding: 34px clamp(20px, 5vw, 46px) 54px;
+  background: #fbf4e8 url(/book/paper-tile.webp) 0 0 / 560px; background-blend-mode: soft-light;
+  box-shadow: 0 1px 2px rgba(80, 55, 30, .18), 0 8px 22px rgba(80, 55, 30, .12);
+  --tear: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 24' preserveAspectRatio='none'%3E%3Cpath d='M0 0H120V14L114 17L109 13L103 18L97 15L90 20L84 16L78 19L71 14L65 18L58 15L52 21L46 16L40 19L33 15L27 20L21 16L15 19L8 15L3 18L0 16Z'/%3E%3C/svg%3E");
+  -webkit-mask: linear-gradient(#000 0 0) top / 100% calc(100% - 15px) no-repeat, var(--tear) bottom / 360px 16px repeat-x;
+          mask: linear-gradient(#000 0 0) top / 100% calc(100% - 15px) no-repeat, var(--tear) bottom / 360px 16px repeat-x;
+}
+.sheet-wrap { position: relative; align-self: start; }
+.sheet-wrap .tape { width: 120px; top: -12px; }
+.sheet-wrap .t1 { left: -18px; transform: rotate(-28deg); }
+.sheet-wrap .t2 { left: auto; right: -18px; transform: rotate(26deg); }
+.sheet-mail { margin-top: 22px; text-align: center; font-size: 16px; }
+
+/* The form: written on lines, like a paper order slip */
+.order-form { display: grid; gap: 22px; }
+.order-form > label, .photos-field { display: grid; gap: 4px; font: 500 19px var(--display); }
+.order-form input:not([type="checkbox"]):not([type="file"]), .order-form textarea {
+  font: 400 18px/1.5 var(--body); color: var(--ink); width: 100%; min-width: 0;
+  background: transparent; border: 0; border-bottom: 1px solid rgba(94, 81, 70, .55); border-radius: 0; padding: 6px 2px;
+}
+.order-form textarea {
+  resize: vertical; border: 0; padding: 0 2px; line-height: 32px; min-height: 130px;
+  background: repeating-linear-gradient(transparent 0 31px, rgba(94, 81, 70, .45) 31px 32px);
+  background-attachment: local;
+}
+.order-form input:focus, .order-form textarea:focus { outline: none; border-color: var(--clay); }
+.order-form textarea:focus { background: repeating-linear-gradient(transparent 0 31px, var(--clay) 31px 32px); background-attachment: local; }
+.order-form ::placeholder { color: #9a8b7c; font-style: italic; }
+.photos-hint { font: italic 400 16px var(--body); color: var(--ink-soft); }
+.previews { display: flex; flex-wrap: wrap; gap: 14px; }
+.previews:empty { display: none; }
+.previews figure { position: relative; margin: 6px 0 0; width: 86px; height: 86px; background: #fff; padding: 5px; box-shadow: 0 1px 3px rgba(80, 55, 30, .3); transform: rotate(-2deg); }
+.previews figure:nth-child(even) { transform: rotate(2.5deg); }
+.previews img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.previews button { position: absolute; top: -9px; right: -9px; width: 24px; height: 24px; border-radius: 50%; border: 0; background: var(--ink); color: #fff8ef; font: 16px/1 var(--body); cursor: pointer; }
+.btn.choose { justify-self: start; background: transparent; color: var(--clay-dark); border: 1px solid var(--clay); box-shadow: none; font-size: 17px; padding: 6px 18px; cursor: pointer; }
+.btn.choose:hover { background: rgba(165, 69, 44, .08); }
+.btn.choose:focus-within { outline: 2px dashed var(--clay); outline-offset: 3px; }
+.consent { display: flex !important; grid-template-columns: none; gap: 10px; align-items: flex-start; font: 400 16px/1.45 var(--body) !important; color: var(--ink-soft); }
+.consent input { margin-top: 4px; width: 18px; height: 18px; accent-color: var(--clay); flex: none; }
+.order-form .btn.primary { justify-self: start; border: 0; cursor: pointer; }
+.order-form .btn.primary:disabled { opacity: .6; cursor: progress; }
+.order-status { min-height: 1.5em; font: italic 400 18px var(--display); }
+.order-status[data-kind="error"] { color: var(--clay-dark); }
+.order-status[data-kind="done"] { color: #3d6b3a; }
+.turnstile:empty { display: none; }
+
+@media (min-width: 860px) {
+  .order-main { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 64px; padding-top: 40px; }
+  .order-side { padding-top: 24px; }
+  .order-piece { display: block; }
+  .order-top { padding: 30px 6vw 0; }
+}
