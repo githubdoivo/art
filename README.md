@@ -19,7 +19,7 @@ paper, a watercolour of Porto, and the order button. No menu: only PT/EN.
   to `pieces` in `content.js` (both languages, with a describing `alt`).
 - **`/order/`**: the order form as a page of the sketchbook (`order-page.js`, `order.js`, `order.css`).
 - **`worker/`**: the Cloudflare Worker behind the form (orders.ivolopes.com): Turnstile check, D1 + R2 storage, and an email to the inbox with Reply-To set to the customer. Deployed with Wrangler, separately from the site.
-- `assets/` is not part of the site (personal source files, left untracked).
+- `assets/src/` holds source images on this Mac only (untracked, not part of the site).
 
 `npm test` runs the Playwright tests (both languages, every image loads,
 photo descriptions, phone width, accessibility, the order form). CI runs them, plus a Lighthouse audit, on every push and daily.
