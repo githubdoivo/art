@@ -140,3 +140,11 @@ html { scrollbar-width: thin; scrollbar-color: rgba(94, 81, 70, .38) transparent
 ::-webkit-scrollbar-thumb { background: rgba(94, 81, 70, .32); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
 ::-webkit-scrollbar-thumb:hover { background-color: rgba(127, 50, 31, .5); }
 ::-webkit-scrollbar-button { display: none; }
+
+/* Touch screens: a finger-sized hit area around the small controls, without
+   changing how they look. */
+@media (pointer: coarse) {
+  .lang, .back { position: relative; }
+  .lang::after, .back::after { content: ""; position: absolute; inset: -10px -6px; }
+  .mail { display: inline-block; padding-block: 10px; }
+}

@@ -125,8 +125,8 @@ test("the order page is a page of the sketchbook, with no errors and no broken i
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/order/?lang=en");
-  await expect(page).toHaveTitle("Order a piece · Ivo Lopes");
-  await expect(page.locator("h1")).toHaveText("Order a piece");
+  await expect(page).toHaveTitle("Order a Piece · Ivo Lopes");
+  await expect(page.locator("h1")).toHaveText("Order a Piece");
   await expect(page.locator("#back-link")).toHaveAttribute("href", "/?lang=en");
   await expect(page.locator("#back-link")).toHaveText("Back");
   await expect(page.locator("canvas, script[type=importmap]")).toHaveCount(0);
@@ -241,4 +241,20 @@ test("the scrollbar is thin and quiet: ink on the paper", async ({ page }) => {
   const sb = await page.evaluate(() => { const s = getComputedStyle(document.documentElement); return [s.scrollbarWidth, s.scrollbarColor]; });
   expect(sb[0]).toBe("thin");
   expect(sb[1]).toContain("rgba(94, 81, 70");
+});
+
+// EN buttons and headings use Title Case ("Order a Piece"): every word starts
+// with a capital except short joining words.
+const SMALL = new Set(["a", "an", "the", "and", "but", "or", "nor", "for", "of", "to", "in", "on", "at", "by", "as"]);
+const notTitleCase = (t) => t.split(/\s+/).filter((w, i) => /^[a-z]/.test(w) && !/[.@/]/.test(w) && (i === 0 || !SMALL.has(w)));
+for (const path of ["/?lang=en", "/order/?lang=en"]) {
+  test(`EN headings and buttons are in Title Case on ${path}`, async ({ page }) => {
+    await page.goto(path);
+    const texts = await page.locator("h1, h2, h3, button, .btn, .skip, figcaption, .prints h3").allInnerTexts();
+    expect(texts.map((t) => t.trim()).filter((t) => t && notTitleCase(t).length)).toEqual([]);
+  });
+}
+test("the skip link speaks the page's language", async ({ page }) => {
+  await page.goto("/?lang=pt");
+  await expect(page.locator(".skip")).toHaveText("Saltar para o conteúdo");
 });

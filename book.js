@@ -63,6 +63,7 @@
   cta.textContent = b.orderButton;
   cta.href = `/order/?lang=${c.lang}`;
   $("#footer").textContent = c.footer;
+  $(".skip").textContent = c.skip;
 
   // The making as a scroll story: the section is tall and its stage sticks to
   // the screen. Scroll progress p runs 0..n-1; drawing i drops onto the pile as
