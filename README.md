@@ -1,6 +1,6 @@
 # art.ivolopes.com
 
-[![CI](https://github.com/githubdoivo/art/actions/workflows/ci.yml/badge.svg)](https://github.com/githubdoivo/art/actions/workflows/ci.yml)
+[![CI](https://github.com/githubdoivo/art.ivolopes.com/actions/workflows/ci.yml/badge.svg)](https://github.com/githubdoivo/art.ivolopes.com/actions/workflows/ci.yml)
 
 Ceramics by Ivo Lopes, as an artist's sketchbook on washi paper: a
 watercolour of the gourd on a table, the making told as a scroll story (five
