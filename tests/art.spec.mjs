@@ -115,10 +115,10 @@ test("the main page invites to order, and the button opens /order in the same la
   await page.goto("/?lang=pt");
   const cta = page.locator("#order-cta");
   await cta.scrollIntoViewIfNeeded();
-  await expect(cta).toHaveText("Encomendar uma peça");
+  await expect(cta).toHaveText("Encomendar uma Peça");
   await cta.click();
   await expect(page).toHaveURL(/\/order\/\?lang=pt$/);
-  await expect(page.locator("h1")).toHaveText("Encomendar uma peça");
+  await expect(page.locator("h1")).toHaveText("Encomendar uma Peça");
 });
 
 test("the order page is a page of the sketchbook, with no errors and no broken images", async ({ page }) => {
@@ -145,7 +145,7 @@ test("the order page has no theme switch and only home, email and language", asy
 test("the order page switches language and keeps it", async ({ page }) => {
   await page.goto("/order/?lang=en");
   await page.locator("#lang-toggle").click();
-  await expect(page.locator("h1")).toHaveText("Encomendar uma peça");
+  await expect(page.locator("h1")).toHaveText("Encomendar uma Peça");
   await expect(page.locator("#back-link")).toHaveText("Voltar");
   await page.goto("/order/");
   await expect(page.locator("html")).toHaveAttribute("lang", "pt");
@@ -256,5 +256,5 @@ for (const path of ["/?lang=en", "/order/?lang=en"]) {
 }
 test("the skip link speaks the page's language", async ({ page }) => {
   await page.goto("/?lang=pt");
-  await expect(page.locator(".skip")).toHaveText("Saltar para o conteúdo");
+  await expect(page.locator(".skip")).toHaveText("Saltar para o Conteúdo");
 });
